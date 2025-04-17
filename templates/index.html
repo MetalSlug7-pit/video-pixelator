@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Pixelator</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <h1>Transforme seu vídeo em Pixel Art!</h1>
+
+        <form id="upload-form" action="/" method="POST" enctype="multipart/form-data">
+            <label for="video">Selecione um vídeo:</label>
+            <input type="file" id="video" name="video" accept="video/*" required>
+            <button type="submit">Enviar vídeo</button>
+        </form>
+
+        <button onclick="soundEnabled = !soundEnabled; this.innerText = soundEnabled ? 'Desativar Som' : 'Ativar Som'">Desativar Som</button>
+
+        <div class="progress-container" id="progress-container" style="display:none;">
+            <div class="progress-bar" id="progress-bar">0%</div>
+        </div>
+
+        <div id="download-section" class="download-section" style="display:none;">
+            <p>Seu vídeo pixelado está pronto!</p>
+            <a id="download-link" class="download-btn" href="#" download>Baixar vídeo</a>
+        </div>
+    </div>
+
+    <script>
+        let soundEnabled = true;
+        const clickSound = new Audio('/static/menu-select.wav');
+        const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB em bytes
+
+        function resetUIForUpload() {
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('progress-bar').innerText = '0%';
+            document.getElementById('progress-container').style.display = 'block';
+            document.getElementById('download-section').style.display = 'none';
+        }
+
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Verificar o tamanho do arquivo
+            const fileInput = document.getElementById('video');
+            const file = fileInput.files[0];
+            if (file && file.size > MAX_FILE_SIZE) {
+                alert('O arquivo é muito grande. O tamanho máximo permitido é 100 MB.');
+                return;
+            }
+
+            if (soundEnabled) clickSound.play();
+            resetUIForUpload();
+
+            const button = document.querySelector('form button');
+            button.disabled = true;
+            button.innerText = "Enviando...";
+
+            const formData = new FormData(this);
+            fetch("/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    button.disabled = false;
+                    button.innerText = "Enviar vídeo";
+                    document.getElementById('progress-container').style.display = 'none';
+                    return;
+                }
+                const filename = data.download_link;
+                const taskId = data.task_id;
+                if (!filename || !taskId) {
+                    console.error('Erro: resposta incompleta do servidor');
+                    button.disabled = false;
+                    button.innerText = "Enviar vídeo";
+                    return;
+                }
+                checkProgress(taskId, filename);
+            })
+            .catch(error => {
+                console.error('Erro ao enviar o vídeo:', error);
+                button.disabled = false;
+                button.innerText = "Enviar vídeo";
+                document.getElementById('progress-container').style.display = 'none';
+            });
+        });
+
+        function updateProgressBar(progress) {
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = progress + '%';
+            progressBar.innerHTML = Math.round(progress) + '%';
+        }
+
+        function checkProgress(taskId, filename) {
+            fetch(`/progress/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateProgressBar(data.progress);
+                    if (data.progress < 100) {
+                        setTimeout(() => checkProgress(taskId, filename), 500);
+                    } else {
+                        const button = document.querySelector('form button');
+                        button.disabled = false;
+                        button.innerText = "Enviar outro vídeo";
+
+                        document.getElementById('progress-container').style.display = 'none';
+                        document.getElementById('download-section').style.display = 'block';
+
+                        const downloadLink = document.getElementById('download-link');
+                        const fullLink = `/processed/${filename}`;
+                        downloadLink.setAttribute("href", fullLink);
+                        downloadLink.setAttribute("download", filename);
+                    }
+                })
+                .catch(error => console.error('Erro ao verificar progresso:', error));
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'931c27f86d3af502',t:'MTc0NDg5NTM1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'931c3c452aaebf91',t:'MTc0NDg5NjE5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
